@@ -6,15 +6,14 @@ import {
   buildInitialBusinessContext,
   buildFounderTeamMember,
   buildInitialTokenUsage,
-  COLLECTIONS,
-} from '@/lib/schema'
+} from '@/lib/schema.server'
+import { COLLECTIONS, DEFAULT_WORK_SCHEDULE } from '@/lib/schema'
 import {
   buildGoalsFromOnboarding,
   buildBusinessDescription,
   inferIndustry,
 } from '@/lib/onboarding'
 import type { OnboardingState, ProductType } from '@/types'
-import { DEFAULT_WORK_SCHEDULE } from '@/lib/schema'
 
 // ─────────────────────────────────────────────
 // POST /api/cyan/onboarding/complete
@@ -54,7 +53,6 @@ export async function POST(req: NextRequest) {
 
   const { state, displayName } = body
 
-  // Basic validation — critical fields must be present
   if (!state.businessName?.trim()) {
     return NextResponse.json({ error: 'businessName is required' }, { status: 400 })
   }
@@ -105,13 +103,12 @@ export async function POST(req: NextRequest) {
     email: email ?? '',
   })
 
-  // Get current month for token usage init
   const now = new Date()
   const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 
   const initialTokenUsage = buildInitialTokenUsage({
     businessId,
-    plan: 'growth',  // all new accounts start on growth plan
+    plan: 'growth',
     month,
   })
 
@@ -119,23 +116,19 @@ export async function POST(req: NextRequest) {
   try {
     const batch = adminDb.batch()
 
-    // businessContext
     const contextRef = adminDb.doc(COLLECTIONS.businessContext(businessId))
-    // Convert to plain object for Admin SDK (it doesn't accept class instances)
     batch.set(contextRef, {
       ...businessContext,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
     })
 
-    // teamMembers — founder record
     const memberRef = adminDb.doc(COLLECTIONS.teamMember(businessId, uid))
     batch.set(memberRef, {
       ...founderMember,
       joinedAt: Timestamp.now(),
     })
 
-    // tokenUsage — initial monthly doc
     const tokenRef = adminDb.doc(COLLECTIONS.tokenUsageMonth(businessId, month))
     batch.set(tokenRef, {
       ...initialTokenUsage,
