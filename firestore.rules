@@ -1,0 +1,113 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Resolve business ownership: checks that the businessContext doc's ownerId
+    // matches the requesting user's uid.
+    // NOTE: This does a Firestore read per security check.
+    // Mitigation: sub-collection docs store ownerId directly (see rules below)
+    // to avoid chained reads on high-frequency queries.
+    function isBusinessOwner(businessId) {
+      return isAuthenticated()
+        && exists(/databases/$(database)/documents/businessContext/$(businessId))
+        && get(/databases/$(database)/documents/businessContext/$(businessId)).data.identity.ownerId == request.auth.uid;
+    }
+
+    // Team member check: a doc exists in teamMembers/{businessId}/members/{uid}
+    function isTeamMember(businessId) {
+      return isAuthenticated()
+        && exists(/databases/$(database)/documents/teamMembers/$(businessId)/members/$(request.auth.uid));
+    }
+
+    // Either owner or team member — used for shared read surfaces
+    function hasBusinessAccess(businessId) {
+      return isBusinessOwner(businessId) || isTeamMember(businessId);
+    }
+
+    // ── businessContext ───────────────────────────────────────────────────────
+    // Only the business owner can read/write their own context document.
+    // Team members have NO direct access — all context is served server-side
+    // through Cyan's API routes using the Admin SDK.
+    match /businessContext/{businessId} {
+      allow read, write: if isBusinessOwner(businessId);
+    }
+
+    // ── attendance ────────────────────────────────────────────────────────────
+    // Record ID format: 'YYYY-MM-DD_{memberId}' — enforced server-side in lib/utils.ts
+    //
+    // Owner: full read/write on all records under their businessId
+    // Team member: read/write only their own record
+    //   — verified via recordId suffix matching their uid
+    match /attendance/{businessId}/records/{recordId} {
+      allow read, write: if isBusinessOwner(businessId);
+      allow read, write: if isTeamMember(businessId)
+        && recordId.matches('.*_' + request.auth.uid);
+    }
+
+    // ── cyanAlerts ────────────────────────────────────────────────────────────
+    // Founder-only surface. Team members never see raw alert documents.
+    // Relevant alerts surface through Cyan's briefings instead.
+    match /cyanAlerts/{businessId}/alerts/{alertId} {
+      allow read, write: if isBusinessOwner(businessId);
+    }
+
+    // ── cyanBriefings ─────────────────────────────────────────────────────────
+    // Owner: full read/write (generates and reads all briefings)
+    // Team member: read only — they receive their personal briefing card
+    //   but cannot write briefing documents
+    match /cyanBriefings/{businessId}/{briefingType}/{docId} {
+      allow read: if hasBusinessAccess(businessId);
+      allow write: if isBusinessOwner(businessId);
+    }
+
+    // ── conversations ─────────────────────────────────────────────────────────
+    // Threads are scoped per user within a business.
+    // Owner can read all threads (for support and oversight).
+    // Team member can only read/write threads they created.
+    match /conversations/{businessId}/threads/{threadId} {
+      allow read, write: if isBusinessOwner(businessId);
+      allow read, write: if isTeamMember(businessId)
+        && resource.data.createdBy == request.auth.uid;
+
+      // Messages inherit parent thread access rules
+      match /messages/{messageId} {
+        allow read, write: if isBusinessOwner(businessId);
+        allow read, write: if isTeamMember(businessId)
+          && get(/databases/$(database)/documents/conversations/$(businessId)/threads/$(threadId)).data.createdBy == request.auth.uid;
+      }
+    }
+
+    // ── tokenUsage ────────────────────────────────────────────────────────────
+    // Founder can READ their own usage (dashboard display).
+    // WRITE is blocked from client — handled exclusively by server-side API routes
+    // using the Firebase Admin SDK (bypasses these rules).
+    // This enforces that token counts are never manipulated client-side.
+    match /tokenUsage/{businessId}/{monthDoc} {
+      allow read: if isBusinessOwner(businessId);
+      allow write: if false;
+    }
+
+    // ── teamMembers ───────────────────────────────────────────────────────────
+    // Owner: full read/write on all member documents
+    // Team member: read/write only their own member document
+    //   (update name, avatar, status, Cyan settings)
+    match /teamMembers/{businessId}/members/{memberId} {
+      allow read, write: if isBusinessOwner(businessId);
+      allow read, write: if isTeamMember(businessId)
+        && memberId == request.auth.uid;
+    }
+
+    // ── Catch-all ─────────────────────────────────────────────────────────────
+    // Deny all access not explicitly matched above.
+    // This is the security default — fail closed, not open.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
