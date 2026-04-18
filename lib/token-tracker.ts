@@ -1,10 +1,10 @@
 import { Timestamp } from 'firebase-admin/firestore'
 import { adminDb } from '@/firebase/firebaseAdmin'
-import { COLLECTIONS, buildInitialTokenUsage } from '@/lib/schema'
+import { COLLECTIONS } from '@/lib/schema'
+import { buildInitialTokenUsage } from '@/lib/schema.server'
 import {
   PLAN_TOKEN_BUDGETS,
   PLAN_SONNET_SESSION_LIMITS,
-  UPGRADE_PROMPT_THRESHOLD,
   type LogTokenUsagePayload,
   type MonthlyTokenUsage,
   type PricingPlan,
@@ -44,7 +44,6 @@ export async function checkTokenBudget(
     const snap = await adminDb.doc(docPath).get()
 
     if (!snap.exists) {
-      // No usage doc yet — create it (Growth plan default) and allow
       await adminDb.doc(docPath).set(
         buildInitialTokenUsage({ businessId, plan: 'growth', month })
       )
@@ -60,7 +59,6 @@ export async function checkTokenBudget(
     const usage = snap.data() as MonthlyTokenUsage
     const { plan, tokenBudget, tokensUsed } = usage
 
-    // Infinite budget (enterprise) — always allow
     if (tokenBudget === Infinity || plan === 'enterprise') {
       return {
         allowed: true,
@@ -86,7 +84,6 @@ export async function checkTokenBudget(
       }
     }
 
-    // Warn if this call would exceed budget
     if (estimatedTokens > remaining) {
       return {
         allowed: false,
@@ -107,7 +104,6 @@ export async function checkTokenBudget(
     }
   } catch (err) {
     console.error('[checkTokenBudget] Error:', err)
-    // Fail open on error — don't block the user due to tracking issues
     return {
       allowed: true,
       tokensRemaining: 999,
@@ -173,7 +169,6 @@ export async function logTokenUsage(payload: LogTokenUsagePayload): Promise<void
     }
 
     if (!snap.exists) {
-      // Create the doc if it doesn't exist yet
       const initial = buildInitialTokenUsage({ businessId, plan: 'growth', month })
       await adminDb.doc(docPath).set({
         ...initial,
@@ -195,7 +190,6 @@ export async function logTokenUsage(payload: LogTokenUsagePayload): Promise<void
       current.upgradePromptShown ||
       shouldShowUpgradePrompt(newUsed, current.tokenBudget)
 
-    // Cap entries array at 100 to avoid unbounded growth
     const entries = [...(current.entries ?? []), entry].slice(-100)
 
     await adminDb.doc(docPath).update({
@@ -210,7 +204,6 @@ export async function logTokenUsage(payload: LogTokenUsagePayload): Promise<void
       updatedAt: Timestamp.now(),
     })
   } catch (err) {
-    // Log but don't throw — token tracking failure must never block the user
     console.error('[logTokenUsage] Failed to log token usage:', err)
   }
 }
@@ -229,7 +222,6 @@ export async function getTokenUsageSummary(businessId: string): Promise<MonthlyT
 }
 
 // ── Build upgrade prompt suffix for Cyan responses ───────────────────────────
-// Appended to Cyan's message when usage hits 80%+
 
 export function buildUpgradePromptSuffix(usagePct: number, plan: PricingPlan): string {
   if (plan === 'enterprise') return ''
