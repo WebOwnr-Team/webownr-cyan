@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuthAndGetContext } from '@/lib/auth-middleware'
 import { getTokenUsageSummary } from '@/lib/token-tracker'
-import { buildInitialTokenUsage } from '@/lib/schema'
+import { buildInitialTokenUsage } from '@/lib/schema.server'
 import { currentMonth } from '@/lib/utils'
 
 // ─────────────────────────────────────────────
@@ -22,7 +22,6 @@ export async function GET(req: NextRequest) {
   const summary = await getTokenUsageSummary(businessId)
 
   if (!summary) {
-    // Return a zeroed-out default — no usage yet
     const initial = buildInitialTokenUsage({ businessId, plan: 'growth', month: currentMonth() })
     return NextResponse.json({ usage: initial })
   }
