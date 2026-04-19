@@ -158,7 +158,7 @@ function BottomTabBar() {
 
 function MobileHeader({ onMenuOpen }: { onMenuOpen: () => void }) {
   const pathname = usePathname()
-  const allItems = NAV_SECTIONS.flatMap(s => s.items) as unknown as NavItemType[]
+ const allItems = NAV_SECTIONS.flatMap(s => s.items)
   const current = allItems.find(item => pathname === item.href)
   return (
     <header style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 52, background: 'var(--navy-mid)', borderBottom: '1px solid var(--border-dim)', display: 'flex', alignItems: 'center', padding: '0 16px', zIndex: 90, gap: 10 }}>
