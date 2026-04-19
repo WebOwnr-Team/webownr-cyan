@@ -76,6 +76,7 @@ export async function POST(req: NextRequest) {
       industry: inferIndustry(state.productType as ProductType),
       productType: state.productType as ProductType,
       targetCustomer: state.targetCustomer.trim(),
+      revenueModel: state.revenueModel || 'Not Specified',
       businessDescription: buildBusinessDescription(state),
     },
     goals: buildGoalsFromOnboarding(state),
