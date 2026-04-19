@@ -95,7 +95,7 @@ function Sidebar({ onClose }: { onClose?: () => void }) {
         {NAV_SECTIONS.map((section) => (
           <div key={section.label} style={{ marginBottom: 16 }}>
             <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 12px', marginBottom: 4 }}>{section.label}</p>
-            {(section.items as unknown as NavItemType[]).map(({ href, label, icon: Icon }) => {
+            {section.items.map(({ href, label, icon: Icon }) => {
               const active = pathname === href
               return (
                 <Link key={href} href={href} onClick={onClose} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 9, marginBottom: 1, color: active ? 'var(--cyan)' : 'var(--text-secondary)', background: active ? 'rgba(0,212,255,0.08)' : 'transparent', textDecoration: 'none', fontSize: 13, fontWeight: active ? 600 : 500, border: active ? '1px solid rgba(0,212,255,0.15)' : '1px solid transparent', transition: 'color 150ms, background 150ms' }}>
