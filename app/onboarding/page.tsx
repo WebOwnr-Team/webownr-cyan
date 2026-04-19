@@ -10,18 +10,6 @@ import { OnboardingInput } from '@/components/onboarding/OnboardingInput'
 import { OnboardingComplete } from '@/components/onboarding/OnboardingComplete'
 import { ONBOARDING_QUESTIONS } from '@/lib/onboarding'
 
-// ─────────────────────────────────────────────
-// Onboarding page
-//
-// Route: /onboarding
-// Guards: must be authenticated (redirects to /login if not)
-//         redirects to /dashboard if already has a business
-//
-// Layout: centered single-column — focused, no distractions.
-// Cyan's message + progress are the primary visual.
-// Input is below — minimal, never competing.
-// ─────────────────────────────────────────────
-
 export default function OnboardingPage() {
   const { user, loading } = useAuth()
   const router = useRouter()
@@ -39,7 +27,6 @@ export default function OnboardingPage() {
     isLastStep,
   } = useOnboarding()
 
-  // Redirect to login if not authenticated
   useEffect(() => {
     if (!loading && !user) {
       router.replace('/login')
@@ -49,11 +36,11 @@ export default function OnboardingPage() {
   if (loading) {
     return (
       <div style={centeredStyle}>
-        <div className="flex gap-1.5">
+        <span style={{ display: 'flex', gap: 6 }}>
           <span className="typing-dot" />
           <span className="typing-dot" />
           <span className="typing-dot" />
-        </div>
+        </span>
       </div>
     )
   }
@@ -61,46 +48,50 @@ export default function OnboardingPage() {
   if (!user) return null
 
   return (
-    <main style={centeredStyle}>
-      {/* Background accent */}
+    <main style={{
+      minHeight: '100vh',
+      background: 'var(--navy)',
+      display: 'flex',
+      alignItems: 'flex-start',
+      justifyContent: 'center',
+      padding: '48px 16px 80px',
+    }}>
       <div
         aria-hidden="true"
         style={{
           position: 'fixed',
-          top: '-20%',
+          top: '-10%',
           left: '50%',
           transform: 'translateX(-50%)',
-          width: 600,
-          height: 400,
+          width: 700,
+          height: 500,
           borderRadius: '50%',
-          background: 'radial-gradient(ellipse, rgba(0,212,255,0.04) 0%, transparent 70%)',
+          background: 'radial-gradient(ellipse, rgba(0,212,255,0.05) 0%, transparent 65%)',
           pointerEvents: 'none',
+          zIndex: 0,
         }}
       />
 
-      <div style={{ width: '100%', maxWidth: 520, padding: '0 20px', position: 'relative' }}>
+      <div style={{ width: '100%', maxWidth: 560, position: 'relative', zIndex: 1 }}>
 
-        {/* WebOwnr wordmark */}
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+        <div style={{ textAlign: 'center', marginBottom: 36 }}>
           <span style={{
             fontSize: 11,
             fontWeight: 700,
             color: 'var(--text-muted)',
             fontFamily: 'var(--font-display)',
-            letterSpacing: '0.12em',
+            letterSpacing: '0.14em',
             textTransform: 'uppercase',
           }}>
             WebOwnr · Cyan
           </span>
         </div>
 
-        {/* Completion screen */}
         {completed ? (
           <OnboardingComplete businessName={state.businessName ?? 'Your business'} />
         ) : (
-          <div className="stagger">
+          <div>
 
-            {/* Cyan's message card */}
             <div className="animate-fade-up">
               <OnboardingCard
                 message={currentQuestion.cyanMessage}
@@ -110,8 +101,7 @@ export default function OnboardingPage() {
               />
             </div>
 
-            {/* Input area */}
-            <div className="animate-fade-up" style={{ marginTop: 20 }}>
+            <div className="animate-fade-up" style={{ marginTop: 16 }}>
               <OnboardingInput
                 question={currentQuestion}
                 value={currentValue}
@@ -121,79 +111,84 @@ export default function OnboardingPage() {
               />
             </div>
 
-            {/* Navigation */}
             <div
               className="animate-fade-up"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginTop: 20,
-                gap: 12,
-              }}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 20 }}
             >
-              {/* Back button */}
               <button
                 type="button"
                 onClick={back}
                 disabled={state.step === 1 || submitting}
-                className="btn-ghost flex items-center gap-2"
                 style={{
-                  padding: '10px 16px',
-                  fontSize: 13,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '13px 18px',
+                  background: 'none',
+                  border: '1px solid var(--border)',
+                  borderRadius: 10,
+                  color: 'var(--text-secondary)',
+                  fontSize: 14,
+                  fontWeight: 500,
+                  cursor: state.step === 1 ? 'default' : 'pointer',
                   opacity: state.step === 1 ? 0 : 1,
                   pointerEvents: state.step === 1 ? 'none' : 'auto',
                   transition: 'opacity 200ms',
+                  minHeight: 50,
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap',
                 }}
               >
-                <ArrowLeft size={14} />
+                <ArrowLeft size={15} />
                 Back
               </button>
 
-              {/* Continue / Finish button */}
               <button
                 type="button"
                 onClick={advance}
                 disabled={submitting}
-                className="btn-primary flex items-center gap-2"
                 style={{
-                  padding: '12px 24px',
-                  fontSize: 14,
                   flex: 1,
-                  maxWidth: 220,
+                  display: 'flex',
+                  alignItems: 'center',
                   justifyContent: 'center',
+                  gap: 8,
+                  padding: '13px 24px',
+                  background: submitting ? 'var(--border)' : 'var(--cyan)',
+                  border: 'none',
+                  borderRadius: 10,
+                  color: submitting ? 'var(--text-muted)' : 'var(--navy)',
+                  fontSize: 15,
+                  fontWeight: 700,
+                  cursor: submitting ? 'not-allowed' : 'pointer',
+                  transition: 'background 200ms, color 200ms',
+                  minHeight: 50,
+                  fontFamily: 'var(--font-display)',
                 }}
               >
                 {submitting ? (
-                  <span className="flex gap-1">
+                  <span style={{ display: 'flex', gap: 4 }}>
                     <span className="typing-dot" />
                     <span className="typing-dot" />
                     <span className="typing-dot" />
                   </span>
+                ) : isLastStep ? (
+                  'Launch workspace'
                 ) : (
-                  <>
-                    {isLastStep ? 'Finish setup' : 'Continue'}
-                    {!isLastStep && <ArrowRight size={14} />}
-                  </>
+                  <>Continue <ArrowRight size={15} /></>
                 )}
               </button>
             </div>
 
-            {/* Step dots */}
             <div
               className="animate-fade-up"
-              style={{
-                display: 'flex',
-                justifyContent: 'center',
-                gap: 6,
-                marginTop: 28,
-              }}
+              style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 28 }}
             >
               {ONBOARDING_QUESTIONS.map(q => (
                 <div
                   key={q.step}
                   style={{
-                    width: q.step === state.step ? 20 : 6,
+                    width: q.step === state.step ? 22 : 6,
                     height: 6,
                     borderRadius: 999,
                     background: q.step === state.step
