@@ -3,14 +3,6 @@
 import { useEffect, useState } from 'react'
 import { CyanOrb } from '@/components/ui/CyanOrb'
 
-// ─────────────────────────────────────────────
-// OnboardingCard
-//
-// The Cyan briefing card displayed on each onboarding step.
-// Shows Cyan's message with a streaming text effect —
-// feels like Cyan is typing, not a static form.
-// ─────────────────────────────────────────────
-
 interface OnboardingCardProps {
   message: string
   subtext?: string
@@ -18,22 +10,15 @@ interface OnboardingCardProps {
   totalSteps: number
 }
 
-export function OnboardingCard({
-  message,
-  subtext,
-  step,
-  totalSteps,
-}: OnboardingCardProps) {
+export function OnboardingCard({ message, subtext, step, totalSteps }: OnboardingCardProps) {
   const [displayedMessage, setDisplayedMessage] = useState('')
   const [messageComplete, setMessageComplete] = useState(false)
   const [displayedSubtext, setDisplayedSubtext] = useState('')
 
-  // Stream the main message character by character
   useEffect(() => {
     setDisplayedMessage('')
     setMessageComplete(false)
     setDisplayedSubtext('')
-
     let i = 0
     const interval = setInterval(() => {
       if (i < message.length) {
@@ -43,15 +28,12 @@ export function OnboardingCard({
         clearInterval(interval)
         setMessageComplete(true)
       }
-    }, 18)
-
+    }, 16)
     return () => clearInterval(interval)
   }, [message])
 
-  // After main message completes, stream the subtext
   useEffect(() => {
     if (!messageComplete || !subtext) return
-
     let i = 0
     const interval = setInterval(() => {
       if (i < subtext.length) {
@@ -60,89 +42,72 @@ export function OnboardingCard({
       } else {
         clearInterval(interval)
       }
-    }, 12)
-
+    }, 10)
     return () => clearInterval(interval)
   }, [messageComplete, subtext])
 
   return (
-    <div className="cyan-card p-5 animate-fade-up">
+    <div
+      className="animate-fade-up"
+      style={{
+        background: 'var(--card-bg)',
+        border: '1px solid rgba(0,212,255,0.18)',
+        borderRadius: 14,
+        padding: '20px 22px',
+        boxShadow: '0 0 0 1px rgba(0,212,255,0.04), 0 4px 24px rgba(0,0,0,0.3)',
+      }}
+    >
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-        <CyanOrb size={32} pulse={!messageComplete} />
+        <CyanOrb size={34} pulse={!messageComplete} />
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          {/* Step indicator */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <span style={{
-              fontSize: 10,
-              fontWeight: 700,
-              color: 'var(--cyan)',
-              fontFamily: 'var(--font-display)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
+              fontSize: 10, fontWeight: 700, color: 'var(--cyan)',
+              fontFamily: 'var(--font-display)', textTransform: 'uppercase', letterSpacing: '0.1em',
             }}>
               Cyan
             </span>
-            <div style={{ flex: 1, height: 1, background: 'var(--border-dim)' }} />
-            <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-              {step} of {totalSteps}
+            <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+            <span style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+              Step {step} of {totalSteps}
             </span>
           </div>
 
-          {/* Main message */}
           <p style={{
-            fontSize: 16,
-            fontWeight: 600,
-            color: 'var(--text-primary)',
-            fontFamily: 'var(--font-display)',
-            lineHeight: 1.4,
-            marginBottom: subtext ? 8 : 0,
+            fontSize: 17, fontWeight: 600, color: 'var(--text-primary)',
+            fontFamily: 'var(--font-display)', lineHeight: 1.45,
+            marginBottom: subtext ? 10 : 0,
           }}>
             {displayedMessage}
-            {/* Blinking cursor while streaming */}
             {!messageComplete && (
               <span style={{
-                display: 'inline-block',
-                width: 2,
-                height: 14,
-                background: 'var(--cyan)',
-                marginLeft: 2,
-                verticalAlign: 'middle',
+                display: 'inline-block', width: 2, height: 15,
+                background: 'var(--cyan)', marginLeft: 2, verticalAlign: 'middle',
                 animation: 'cyan-pulse 0.8s ease-in-out infinite',
               }} />
             )}
           </p>
 
-          {/* Subtext */}
           {subtext && displayedSubtext && (
-            <p style={{
-              fontSize: 13,
-              color: 'var(--text-secondary)',
-              lineHeight: 1.6,
-            }}>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
               {displayedSubtext}
             </p>
           )}
         </div>
       </div>
 
-      {/* Progress bar */}
       <div style={{
-        marginTop: 16,
-        height: 2,
-        background: 'var(--border-dim)',
-        borderRadius: 999,
-        overflow: 'hidden',
+        marginTop: 18, height: 2, background: 'var(--border)',
+        borderRadius: 999, overflow: 'hidden',
       }}>
-        <div
-          style={{
-            height: '100%',
-            width: `${(step / totalSteps) * 100}%`,
-            background: 'var(--cyan)',
-            borderRadius: 999,
-            transition: 'width 400ms var(--ease-out)',
-          }}
-        />
+        <div style={{
+          height: '100%',
+          width: `${(step / totalSteps) * 100}%`,
+          background: 'var(--cyan)',
+          borderRadius: 999,
+          transition: 'width 450ms var(--ease-out)',
+        }} />
       </div>
     </div>
   )
