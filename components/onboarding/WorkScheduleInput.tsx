@@ -1,20 +1,11 @@
 'use client'
 
-import { useState } from 'react'
 import { Check } from 'lucide-react'
 import type { WorkSchedule, BreakScheduleEntry } from '@/types'
 import { DEFAULT_WORK_SCHEDULE } from '@/lib/schema'
 
-// ─────────────────────────────────────────────
-// WorkScheduleInput
-//
-// Visual work schedule builder for onboarding step 5.
-// Outputs: serialised WorkSchedule JSON string via onChange.
-// Displays: day toggles, time pickers, break management.
-// ─────────────────────────────────────────────
-
 interface WorkScheduleInputProps {
-  value: string          // JSON-serialised WorkSchedule
+  value: string
   onChange: (value: string) => void
 }
 
@@ -23,14 +14,39 @@ const DAY_LABELS: Record<number, string> = {
 }
 
 const TIMEZONE_OPTIONS = [
-  { value: 'Africa/Lagos',     label: 'Lagos (WAT, UTC+1)' },
-  { value: 'Africa/Accra',     label: 'Accra (GMT, UTC+0)' },
-  { value: 'Africa/Nairobi',   label: 'Nairobi (EAT, UTC+3)' },
-  { value: 'Africa/Johannesburg', label: 'Johannesburg (SAST, UTC+2)' },
-  { value: 'Europe/London',    label: 'London (GMT/BST)' },
-  { value: 'America/New_York', label: 'New York (EST/EDT)' },
-  { value: 'UTC',              label: 'UTC' },
+  { value: 'Africa/Lagos',        label: 'Lagos — WAT (UTC+1)' },
+  { value: 'Africa/Accra',        label: 'Accra — GMT (UTC+0)' },
+  { value: 'Africa/Nairobi',      label: 'Nairobi — EAT (UTC+3)' },
+  { value: 'Africa/Johannesburg', label: 'Johannesburg — SAST (UTC+2)' },
+  { value: 'Europe/London',       label: 'London — GMT/BST' },
+  { value: 'America/New_York',    label: 'New York — EST/EDT' },
+  { value: 'UTC',                 label: 'UTC' },
 ]
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  boxSizing: 'border-box',
+  background: 'var(--card-bg)',
+  border: '1px solid var(--border)',
+  borderRadius: 10,
+  padding: '13px 14px',
+  fontSize: 14,
+  color: 'var(--text-primary)',
+  fontFamily: 'var(--font-body)',
+  outline: 'none',
+  minHeight: 48,
+}
+
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  fontSize: 11,
+  fontWeight: 700,
+  color: 'var(--text-secondary)',
+  textTransform: 'uppercase',
+  letterSpacing: '0.08em',
+  fontFamily: 'var(--font-display)',
+  marginBottom: 8,
+}
 
 function parseSchedule(value: string): WorkSchedule {
   if (!value) return DEFAULT_WORK_SCHEDULE
@@ -45,8 +61,7 @@ export function WorkScheduleInput({ value, onChange }: WorkScheduleInputProps) {
   const schedule = parseSchedule(value)
 
   function update(partial: Partial<WorkSchedule>) {
-    const updated = { ...schedule, ...partial }
-    onChange(JSON.stringify(updated))
+    onChange(JSON.stringify({ ...schedule, ...partial }))
   }
 
   function toggleDay(day: number) {
@@ -57,7 +72,11 @@ export function WorkScheduleInput({ value, onChange }: WorkScheduleInputProps) {
   }
 
   function addBreak() {
-    const newBreak: BreakScheduleEntry = { breakName: 'Break', startTime: '12:00', endTime: '13:00' }
+    const newBreak: BreakScheduleEntry = {
+      breakName: 'Break',
+      startTime: '12:00',
+      endTime: '13:00',
+    }
     update({ breakSchedule: [...schedule.breakSchedule, newBreak] })
   }
 
@@ -73,14 +92,13 @@ export function WorkScheduleInput({ value, onChange }: WorkScheduleInputProps) {
   }
 
   return (
-    <div className="space-y-5">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
 
       {/* Timezone */}
       <div>
         <label style={labelStyle}>Timezone</label>
         <select
-          className="form-input w-full px-4 py-3 mt-1.5"
-          style={{ fontSize: 14 }}
+          style={{ ...inputStyle, cursor: 'pointer' }}
           value={schedule.timezone}
           onChange={e => update({ timezone: e.target.value })}
         >
@@ -93,7 +111,7 @@ export function WorkScheduleInput({ value, onChange }: WorkScheduleInputProps) {
       {/* Work days */}
       <div>
         <label style={labelStyle}>Work days</label>
-        <div className="flex gap-2 mt-2 flex-wrap">
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {[1, 2, 3, 4, 5, 6, 7].map(day => {
             const active = schedule.workDays.includes(day)
             return (
@@ -102,11 +120,11 @@ export function WorkScheduleInput({ value, onChange }: WorkScheduleInputProps) {
                 type="button"
                 onClick={() => toggleDay(day)}
                 style={{
-                  width: 44,
-                  height: 44,
+                  width: 52,
+                  height: 52,
                   borderRadius: 10,
                   border: active ? '1px solid var(--cyan)' : '1px solid var(--border)',
-                  background: active ? 'var(--cyan-subtle)' : 'var(--navy-mid)',
+                  background: active ? 'rgba(0,212,255,0.08)' : 'var(--card-bg)',
                   color: active ? 'var(--cyan)' : 'var(--text-muted)',
                   fontSize: 12,
                   fontWeight: 700,
@@ -117,14 +135,17 @@ export function WorkScheduleInput({ value, onChange }: WorkScheduleInputProps) {
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexDirection: 'column',
-                  gap: 2,
+                  gap: 3,
+                  flexShrink: 0,
                 }}
               >
                 {DAY_LABELS[day]}
                 {active && (
                   <div style={{
-                    width: 4, height: 4, borderRadius: '50%',
-                    background: 'var(--cyan)', marginTop: 1,
+                    width: 4,
+                    height: 4,
+                    borderRadius: '50%',
+                    background: 'var(--cyan)',
                   }} />
                 )}
               </button>
@@ -134,23 +155,21 @@ export function WorkScheduleInput({ value, onChange }: WorkScheduleInputProps) {
       </div>
 
       {/* Work hours */}
-      <div className="flex gap-4">
-        <div className="flex-1">
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <div>
           <label style={labelStyle}>Start time</label>
           <input
             type="time"
-            className="form-input w-full px-4 py-3 mt-1.5"
-            style={{ fontSize: 14 }}
+            style={inputStyle}
             value={schedule.workStartTime}
             onChange={e => update({ workStartTime: e.target.value })}
           />
         </div>
-        <div className="flex-1">
+        <div>
           <label style={labelStyle}>End time</label>
           <input
             type="time"
-            className="form-input w-full px-4 py-3 mt-1.5"
-            style={{ fontSize: 14 }}
+            style={inputStyle}
             value={schedule.workEndTime}
             onChange={e => update({ workEndTime: e.target.value })}
           />
@@ -159,18 +178,19 @@ export function WorkScheduleInput({ value, onChange }: WorkScheduleInputProps) {
 
       {/* Break schedule */}
       <div>
-        <div className="flex items-center justify-between mb-2">
-          <label style={labelStyle}>Breaks</label>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <label style={{ ...labelStyle, marginBottom: 0 }}>Breaks</label>
           <button
             type="button"
             onClick={addBreak}
             style={{
-              fontSize: 12,
+              fontSize: 13,
               color: 'var(--cyan)',
               background: 'none',
               border: 'none',
               cursor: 'pointer',
               fontWeight: 600,
+              padding: '2px 0',
             }}
           >
             + Add break
@@ -178,44 +198,42 @@ export function WorkScheduleInput({ value, onChange }: WorkScheduleInputProps) {
         </div>
 
         {schedule.breakSchedule.length === 0 && (
-          <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-            No breaks scheduled. Add a lunch break or morning break.
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+            No breaks scheduled. Add a lunch break or a morning break.
           </p>
         )}
 
-        <div className="space-y-2">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {schedule.breakSchedule.map((brk, i) => (
             <div
               key={i}
               style={{
-                display: 'flex',
-                gap: 10,
+                display: 'grid',
+                gridTemplateColumns: '1fr 120px auto 120px auto',
+                gap: 8,
                 alignItems: 'center',
-                background: 'var(--navy-mid)',
+                background: 'rgba(255,255,255,0.02)',
                 border: '1px solid var(--border)',
                 borderRadius: 10,
-                padding: '10px 12px',
+                padding: '10px 14px',
               }}
             >
               <input
-                className="form-input"
-                style={{ flex: 1, padding: '6px 10px', fontSize: 13 }}
+                style={{ ...inputStyle, padding: '9px 12px', fontSize: 13, minHeight: 40 }}
                 placeholder="Break name"
                 value={brk.breakName}
                 onChange={e => updateBreak(i, { breakName: e.target.value })}
               />
               <input
                 type="time"
-                className="form-input"
-                style={{ width: 108, padding: '6px 10px', fontSize: 13 }}
+                style={{ ...inputStyle, padding: '9px 10px', fontSize: 13, minHeight: 40 }}
                 value={brk.startTime}
                 onChange={e => updateBreak(i, { startTime: e.target.value })}
               />
-              <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>to</span>
+              <span style={{ color: 'var(--text-muted)', fontSize: 12, textAlign: 'center' }}>to</span>
               <input
                 type="time"
-                className="form-input"
-                style={{ width: 108, padding: '6px 10px', fontSize: 13 }}
+                style={{ ...inputStyle, padding: '9px 10px', fontSize: 13, minHeight: 40 }}
                 value={brk.endTime}
                 onChange={e => updateBreak(i, { endTime: e.target.value })}
               />
@@ -227,10 +245,12 @@ export function WorkScheduleInput({ value, onChange }: WorkScheduleInputProps) {
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
-                  fontSize: 18,
+                  fontSize: 20,
                   lineHeight: 1,
-                  padding: '0 2px',
-                  flexShrink: 0,
+                  padding: '0 4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
                 ×
@@ -242,29 +262,23 @@ export function WorkScheduleInput({ value, onChange }: WorkScheduleInputProps) {
 
       {/* Summary */}
       {schedule.workDays.length > 0 && (
-        <div className="cyan-card p-3">
-          <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+        <div style={{
+          background: 'rgba(0,212,255,0.05)',
+          border: '1px solid rgba(0,212,255,0.15)',
+          borderRadius: 10,
+          padding: '12px 16px',
+        }}>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
             <span style={{ color: 'var(--cyan)', fontWeight: 600 }}>Cyan will be active</span>
             {' '}on{' '}
             {schedule.workDays.map(d => DAY_LABELS[d]).join(', ')}{' '}
             from {schedule.workStartTime} to {schedule.workEndTime}
             {schedule.breakSchedule.length > 0 && (
               <>, with {schedule.breakSchedule.length} scheduled break{schedule.breakSchedule.length > 1 ? 's' : ''}</>
-            )}
-            .
+            )}.
           </p>
         </div>
       )}
     </div>
   )
-}
-
-const labelStyle: React.CSSProperties = {
-  fontSize: 12,
-  fontWeight: 600,
-  color: 'var(--text-secondary)',
-  textTransform: 'uppercase',
-  letterSpacing: '0.06em',
-  fontFamily: 'var(--font-display)',
-  display: 'block',
 }
