@@ -19,19 +19,18 @@ import type { OnboardingState, ProductType } from '@/types'
 // POST /api/cyan/onboarding/complete
 //
 // Called when the founder finishes all 5 onboarding steps.
-// Creates:
+// Creates three documents atomically via a batch write:
 //   - businessContext/{businessId}
 //   - teamMembers/{businessId}/members/{uid}  (founder record)
 //   - tokenUsage/{businessId}/{month}          (initial usage doc)
 //
 // Uses verifyAuthOnly() — no teamMembers doc exists yet,
 // so verifyAuthAndGetContext() would fail at this stage.
-// businessId is generated server-side as the Firebase Auth uid
-// of the founder — clean 1:1 mapping, no separate ID needed.
+// businessId = Firebase Auth UID of the founder (clean 1:1 mapping).
 // ─────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  // 1. Verify auth token
+  // 1. Verify Firebase auth token
   const auth = await verifyAuthOnly(req)
   if (!auth.success) {
     return NextResponse.json({ error: auth.error.error }, { status: auth.error.status })
@@ -39,11 +38,8 @@ export async function POST(req: NextRequest) {
 
   const { uid, email } = auth
 
-  // 2. Parse and validate request body
-  let body: {
-    state: OnboardingState
-    displayName: string
-  }
+  // 2. Parse request body
+  let body: { state: OnboardingState; displayName: string }
 
   try {
     body = await req.json()
@@ -53,24 +49,25 @@ export async function POST(req: NextRequest) {
 
   const { state, displayName } = body
 
+  // 3. Validate required fields
   if (!state.businessName?.trim()) {
-    return NextResponse.json({ error: 'businessName is required' }, { status: 400 })
+    return NextResponse.json({ error: 'Business name is required.' }, { status: 400 })
   }
   if (!state.productType) {
-    return NextResponse.json({ error: 'productType is required' }, { status: 400 })
+    return NextResponse.json({ error: 'Business type is required.' }, { status: 400 })
   }
   if (!state.targetCustomer?.trim()) {
-    return NextResponse.json({ error: 'targetCustomer is required' }, { status: 400 })
+    return NextResponse.json({ error: 'Target customer description is required.' }, { status: 400 })
   }
   if (!state.primary90Day?.trim()) {
-    return NextResponse.json({ error: 'primary90Day is required' }, { status: 400 })
+    return NextResponse.json({ error: '90-day goal is required.' }, { status: 400 })
   }
 
-  // 3. businessId = founder's uid (clean 1:1 mapping)
   const businessId = uid
   const workSchedule = state.workSchedule ?? DEFAULT_WORK_SCHEDULE
+  const founderName = displayName?.trim() || email?.split('@')[0] || 'Founder'
 
-  // 4. Build documents
+  // 4. Build Firestore documents
   const businessContext = buildInitialBusinessContext({
     businessId,
     ownerId: uid,
@@ -87,7 +84,7 @@ export async function POST(req: NextRequest) {
       roles: [
         {
           memberId: uid,
-          name: displayName || email?.split('@')[0] || 'Founder',
+          name: founderName,
           role: 'founder',
           department: 'general',
         },
@@ -99,7 +96,7 @@ export async function POST(req: NextRequest) {
   const founderMember = buildFounderTeamMember({
     memberId: uid,
     businessId,
-    name: displayName || email?.split('@')[0] || 'Founder',
+    name: founderName,
     email: email ?? '',
   })
 
@@ -112,10 +109,11 @@ export async function POST(req: NextRequest) {
     month,
   })
 
-  // 5. Write all three documents in a batch — atomic
+  // 5. Atomic batch write
   try {
     const batch = adminDb.batch()
 
+    // businessContext document
     const contextRef = adminDb.doc(COLLECTIONS.businessContext(businessId))
     batch.set(contextRef, {
       ...businessContext,
@@ -123,12 +121,14 @@ export async function POST(req: NextRequest) {
       updatedAt: Timestamp.now(),
     })
 
+    // Founder team member document
     const memberRef = adminDb.doc(COLLECTIONS.teamMember(businessId, uid))
     batch.set(memberRef, {
       ...founderMember,
       joinedAt: Timestamp.now(),
     })
 
+    // Initial token usage document
     const tokenRef = adminDb.doc(COLLECTIONS.tokenUsageMonth(businessId, month))
     batch.set(tokenRef, {
       ...initialTokenUsage,
@@ -141,13 +141,19 @@ export async function POST(req: NextRequest) {
       success: true,
       businessId,
       businessName: state.businessName.trim(),
-      message: 'Business context created successfully',
     })
 
   } catch (err) {
-    console.error('[onboarding/complete] Firestore batch write failed:', err)
+    console.error('[onboarding/complete] Batch write failed:', err)
+
+    // Surface a useful message — most common cause is missing/invalid
+    // FIREBASE_SERVICE_ACCOUNT_KEY env var in production.
+    const message = err instanceof Error ? err.message : 'Unknown error'
     return NextResponse.json(
-      { error: 'Failed to save your business setup. Please try again.' },
+      {
+        error: 'Failed to save your workspace setup. Please try again.',
+        detail: process.env.NODE_ENV === 'development' ? message : undefined,
+      },
       { status: 500 }
     )
   }
