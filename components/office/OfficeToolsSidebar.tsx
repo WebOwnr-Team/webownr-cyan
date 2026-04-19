@@ -42,7 +42,7 @@ export function OfficeToolsSidebar() {
           <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>Recent Alerts</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {alerts.slice(0, 2).map(alert => (
-              <div key={alert.id} className="card" style={{ padding: '10px 14px', borderLeft: `3px solid ${alert.severity === 'warning' ? 'var(--orange)' : alert.severity === 'critical' ? 'var(--red)' : 'var(--cyan)'}` }}>
+              <div key={alert.alertId} className="card" style={{ padding: '10px 14px', borderLeft: `3px solid ${alert.severity === 'warning' ? 'var(--orange)' : alert.severity === 'critical' ? 'var(--red)' : 'var(--cyan)'}` }}>
                 <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>{alert.title}</p>
                 <p style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{alert.body}</p>
               </div>
