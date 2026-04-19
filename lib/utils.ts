@@ -1,11 +1,42 @@
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
-// Shared timestamp interface — satisfied by both firebase/firestore
-// and firebase-admin/firestore Timestamp classes at runtime
+// ─────────────────────────────────────────────
+// Timestamp handling
+//
+// Firestore Timestamp objects have a .toDate() method.
+// BUT when the Admin SDK serializes data to JSON (via API routes),
+// Timestamps become plain objects: { seconds: number, nanoseconds: number }
+// Calling .toDate() on those plain objects throws "e.toDate is not a function".
+//
+// safeToDate() handles ALL three cases:
+//   1. Real Firestore Timestamp  → call .toDate()
+//   2. Plain { seconds, nanoseconds } object → construct Date from seconds
+//   3. null / undefined → return null
+// ─────────────────────────────────────────────
+
 interface TimestampLike {
   toDate(): Date
-  toMillis(): number
+  seconds?: number
+  nanoseconds?: number
+}
+
+interface SerializedTimestamp {
+  seconds: number
+  nanoseconds?: number
+}
+
+function safeToDate(ts: TimestampLike | SerializedTimestamp | null | undefined): Date | null {
+  if (!ts) return null
+  // Real Firestore Timestamp — has .toDate() as a function
+  if (typeof (ts as TimestampLike).toDate === 'function') {
+    return (ts as TimestampLike).toDate()
+  }
+  // Serialized plain object — has seconds field
+  if (typeof (ts as SerializedTimestamp).seconds === 'number') {
+    return new Date((ts as SerializedTimestamp).seconds * 1000)
+  }
+  return null
 }
 
 // ─────────────────────────────────────────────
@@ -35,7 +66,7 @@ export function formatNGN(amount: number, compact = false): string {
 
 export function toDateString(date: Date): string {
   // Returns 'YYYY-MM-DD' — used as Firestore document IDs
-  return date.toISOString().split('T')[0]
+  return date.toISOString().split('T')[0]!
 }
 
 export function todayString(): string {
@@ -64,12 +95,17 @@ export function currentMonth(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 }
 
-export function timestampToDate(ts: TimestampLike): Date {
-  return ts.toDate()
+// Safe wrappers — handle both real Timestamps and plain serialized objects
+export function timestampToDate(ts: TimestampLike | SerializedTimestamp | null | undefined): Date {
+  return safeToDate(ts) ?? new Date(0)
 }
 
-export function timestampToString(ts: TimestampLike, format: 'time' | 'date' | 'datetime' = 'datetime'): string {
-  const date = ts.toDate()
+export function timestampToString(
+  ts: TimestampLike | SerializedTimestamp | null | undefined,
+  format: 'time' | 'date' | 'datetime' = 'datetime'
+): string {
+  const date = safeToDate(ts)
+  if (!date) return '—'
   switch (format) {
     case 'time':
       return date.toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit' })
@@ -90,7 +126,7 @@ export function timestampToString(ts: TimestampLike, format: 'time' | 'date' | '
 // Parse '09:00' → { hours: 9, minutes: 0 }
 export function parseTime(timeStr: string): { hours: number; minutes: number } {
   const [hours, minutes] = timeStr.split(':').map(Number)
-  return { hours, minutes }
+  return { hours: hours ?? 0, minutes: minutes ?? 0 }
 }
 
 // Get current time as 'HH:MM' string in a given timezone
