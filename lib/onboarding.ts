@@ -1,36 +1,26 @@
 import type { OnboardingStep, OnboardingState, ProductType } from '@/types'
 import { DEFAULT_WORK_SCHEDULE } from '@/lib/schema'
 
-// ─────────────────────────────────────────────
-// Onboarding Conversation Engine
-//
-// Cyan's first interaction with a new founder.
-// 5 questions, conversational — not a form.
-// Each step has: Cyan's message, input type, validation.
-//
-// After step 5, the full businessContext is written to Firestore.
-// ─────────────────────────────────────────────
-
 export interface OnboardingQuestion {
   step: OnboardingStep
-  cyanMessage: string          // What Cyan says — shown as a briefing card
-  cyanSubtext?: string         // Optional clarifying line below the main message
+  cyanMessage: string
+  cyanSubtext?: string
   inputType: 'text' | 'select' | 'textarea' | 'schedule'
   inputLabel: string
   inputPlaceholder?: string
   options?: { value: string; label: string; subtext?: string }[]
   fieldKey: keyof OnboardingState
-  validation: (value: string) => string | null  // returns error string or null
+  validation: (value: string) => string | null
 }
 
 export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
   {
     step: 1,
-    cyanMessage: "Let's set up your business. What's it called?",
-    cyanSubtext: "This is how I'll refer to your business in every briefing and report.",
+    cyanMessage: "What's the name of your business?",
+    cyanSubtext: "This is how your workspace will be identified across every report, briefing, and team view I generate.",
     inputType: 'text',
     inputLabel: 'Business name',
-    inputPlaceholder: 'e.g. Adé Luxe Collections',
+    inputPlaceholder: 'e.g. Alp Luxe Studio',
     fieldKey: 'businessName',
     validation: (v) => {
       if (!v.trim()) return 'Enter your business name to continue.'
@@ -40,121 +30,102 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
   },
   {
     step: 2,
-    cyanMessage: "What do you sell?",
-    cyanSubtext: "Choose the option that best describes your business. This shapes everything I help you with.",
+    cyanMessage: "What does your business do?",
+    cyanSubtext: "This tells me how to frame your analytics, briefings, and recommendations — and how to speak about your business to your team.",
     inputType: 'select',
-    inputLabel: 'What your business sells',
+    inputLabel: 'Business type',
     fieldKey: 'productType',
     options: [
       {
+        value: 'service',
+        label: 'Agency or service business',
+        subtext: 'Design, development, consulting, logistics, legal, creative — you deliver work for clients',
+      },
+      {
         value: 'physical',
-        label: 'Physical products',
-        subtext: 'Fashion, electronics, food, beauty, homewares — things you ship or hand over',
+        label: 'Product business',
+        subtext: 'Fashion, electronics, FMCG, beauty, hardware — you manufacture or resell physical goods',
       },
       {
         value: 'digital',
-        label: 'Digital products',
-        subtext: 'Courses, templates, software, downloads — things delivered online',
-      },
-      {
-        value: 'service',
-        label: 'Services',
-        subtext: 'Consulting, design, photography, logistics, repairs — things you do for clients',
+        label: 'Digital products or SaaS',
+        subtext: 'Software, courses, templates, subscriptions — your products are delivered online',
       },
       {
         value: 'hybrid',
-        label: 'Both products and services',
-        subtext: 'A mix — e.g. a salon that also sells haircare products',
+        label: 'Mixed model',
+        subtext: 'A combination — e.g. a studio that sells products and takes on client projects',
       },
     ],
     validation: (v) => {
       const valid: ProductType[] = ['physical', 'digital', 'service', 'hybrid']
-      if (!valid.includes(v as ProductType)) return 'Select what your business sells.'
+      if (!valid.includes(v as ProductType)) return 'Select your business type to continue.'
       return null
     },
   },
   {
     step: 3,
-    cyanMessage: "Who is your customer?",
-    cyanSubtext: "Be specific. The more you tell me, the better I can tailor every insight to your market.",
+    cyanMessage: "Who does your business serve?",
+    cyanSubtext: "Describe your primary customer or client. The more specific you are, the more precisely I can frame every insight, report, and recommendation I generate for your team.",
     inputType: 'textarea',
-    inputLabel: 'Your target customer',
-    inputPlaceholder: 'e.g. Young Nigerian women aged 20–35 who buy fashion online and follow style influencers on Instagram',
+    inputLabel: 'Target customer or client',
+    inputPlaceholder: 'e.g. Mid-size Nigerian brands and startups that need UI/UX design and brand identity work. Decision-makers are usually founders or CMOs with a budget of ₦500K–₦5M per project.',
     fieldKey: 'targetCustomer',
     validation: (v) => {
-      if (!v.trim()) return 'Describe your target customer to continue.'
-      if (v.trim().length < 20) return 'Give me a bit more detail — who exactly buys from you?'
+      if (!v.trim()) return 'Describe your target customer or client to continue.'
+      if (v.trim().length < 20) return 'A bit more detail helps — who exactly do you work with or sell to?'
       return null
     },
   },
   {
     step: 4,
-    cyanMessage: "What's your biggest focus for the next 90 days?",
-    cyanSubtext: "I'll track your progress against this goal in every daily briefing. Be specific — a number helps.",
+    cyanMessage: "What's the single most important thing your business needs to achieve in the next 90 days?",
+    cyanSubtext: "I'll track this as your primary goal in every dashboard briefing and weekly report. Be specific — a number or outcome makes it measurable.",
     inputType: 'textarea',
-    inputLabel: '90-day goal',
-    inputPlaceholder: 'e.g. Hit ₦500,000 in monthly revenue by growing Instagram sales and launching WhatsApp ordering',
+    inputLabel: '90-day priority',
+    inputPlaceholder: 'e.g. Close 8 new client projects and bring monthly revenue to ₦4M by building a consistent outbound pipeline and improving our proposal-to-close rate.',
     fieldKey: 'primary90Day',
     validation: (v) => {
-      if (!v.trim()) return 'Tell me your 90-day goal to continue.'
-      if (v.trim().length < 15) return "Give me more detail — what does success look like in 90 days?"
+      if (!v.trim()) return 'Define your 90-day priority to continue.'
+      if (v.trim().length < 15) return 'Be more specific — what does success look like in 90 days?'
       return null
     },
   },
   {
     step: 5,
-    cyanMessage: "Last one — set your team's working hours.",
-    cyanSubtext: "I'll use this to track attendance, send morning briefings at the right time, and schedule break reminders. You can change this later.",
+    cyanMessage: "Set your team's operating hours.",
+    cyanSubtext: "I use this to time morning briefings, track attendance, schedule break reminders, and know when your team is live. You can update this at any time from settings.",
     inputType: 'schedule',
     inputLabel: 'Work schedule',
     fieldKey: 'workSchedule',
     validation: (v) => {
-      // Schedule is validated by the schedule component itself — always passes here
       if (!v) return 'Set your work schedule to continue.'
       return null
     },
   },
 ]
 
-// ─────────────────────────────────────────────
-// Cyan's completion message — shown after step 5
-// ─────────────────────────────────────────────
-
 export function buildCompletionMessage(businessName: string): string {
-  return `${businessName} is ready. I've set up your workspace and I'm already learning your business. Your first briefing will be waiting for you tomorrow morning.`
+  return `${businessName} is live on WebOwnr. Your workspace is ready, your team can now be invited, and I'll have your first briefing waiting tomorrow morning.`
 }
-
-// ─────────────────────────────────────────────
-// Build the initial goals object from onboarding state
-// ─────────────────────────────────────────────
 
 export function buildGoalsFromOnboarding(state: OnboardingState) {
   return {
     primary90Day: state.primary90Day ?? '',
-    sixMonthRevenue: 0,           // set in settings after onboarding
-    yearMilestone: '',            // set in settings after onboarding
-    currentChallenges: [],        // populated by Cyan over time
+    sixMonthRevenue: 0,
+    yearMilestone: '',
+    currentChallenges: [],
   }
 }
-
-// ─────────────────────────────────────────────
-// Infer industry from productType — used to pre-populate
-// businessContext.identity.industry before settings refinement
-// ─────────────────────────────────────────────
 
 export function inferIndustry(productType: ProductType): string {
   switch (productType) {
     case 'physical': return 'Retail / E-commerce'
-    case 'digital':  return 'Digital Products / Creator Economy'
-    case 'service':  return 'Professional Services'
-    case 'hybrid':   return 'Retail & Services'
+    case 'digital':  return 'Digital Products / SaaS'
+    case 'service':  return 'Agency / Professional Services'
+    case 'hybrid':   return 'Mixed — Products & Services'
   }
 }
-
-// ─────────────────────────────────────────────
-// Build businessDescription from onboarding answers
-// Used as Cyan's initial context until the founder refines it
-// ─────────────────────────────────────────────
 
 export function buildBusinessDescription(state: OnboardingState): string {
   const name = state.businessName ?? 'This business'
@@ -164,17 +135,13 @@ export function buildBusinessDescription(state: OnboardingState): string {
 
   const typeLabel: Record<ProductType, string> = {
     physical: 'sells physical products',
-    digital: 'sells digital products',
-    service: 'provides services',
+    digital: 'sells digital products and software',
+    service: 'provides professional services to clients',
     hybrid: 'sells products and provides services',
   }
 
-  return `${name} ${typeLabel[type]}. Target customer: ${customer}. Current 90-day focus: ${goal}.`
+  return `${name} ${typeLabel[type]}. Primary customer/client: ${customer}. Current 90-day priority: ${goal}.`
 }
-
-// ─────────────────────────────────────────────
-// Initial onboarding state
-// ─────────────────────────────────────────────
 
 export const INITIAL_ONBOARDING_STATE: OnboardingState = {
   step: 1,
