@@ -46,10 +46,13 @@ export const COLLECTIONS = {
   message: (businessId: string, threadId: string, messageId: string) =>
     `conversations/${businessId}/threads/${threadId}/messages/${messageId}`,
 
+
   tokenUsage: (businessId: string) =>
     `tokenUsage/${businessId}`,
+
+  // Add 'history' or 'months' as a sub-collection segment
   tokenUsageMonth: (businessId: string, month: string) =>
-    `tokenUsage/${businessId}/${month}`,
+    `tokenUsage/${businessId}/months/${month}`,
 
   teamMembers: (businessId: string) =>
     `teamMembers/${businessId}/members`,
