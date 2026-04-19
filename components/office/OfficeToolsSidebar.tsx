@@ -16,7 +16,7 @@ export function OfficeToolsSidebar() {
   useEffect(() => {
     if (!businessId) return
     const q = query(collection(db, COLLECTIONS.cyanAlerts(businessId)), orderBy('createdAt', 'desc'), limit(3))
-    return onSnapshot(q, snap => setAlerts(snap.docs.map(d => ({ id: d.id, ...d.data() } as CyanAlert))))
+    return onSnapshot(q, snap => setAlerts(snap.docs.map(d => ({ alertId: d.id, ...d.data() } as unknown as CyanAlert))))
   }, [businessId])
 
   const now = new Date()
