@@ -35,7 +35,20 @@ class DashboardErrorBoundary extends Component<{ children: ReactNode }, ErrorBou
   }
 }
 
-const NAV_SECTIONS = [
+// 1. Define clear interfaces
+interface NavItem {
+  href: string
+  label: string
+  icon: React.ElementType
+}
+
+interface NavSection {
+  label: string
+  items: NavItem[]
+}
+
+// 2. Apply the type to your array (and remove 'as const')
+const NAV_SECTIONS: NavSection[] = [
   { label: 'Workspace', items: [
     { href: '/dashboard',  label: 'Dashboard',    icon: LayoutDashboard },
     { href: '/office',     label: 'The Office',   icon: Building2       },
@@ -53,9 +66,11 @@ const NAV_SECTIONS = [
   { label: 'Configure', items: [
     { href: '/settings',   label: 'Settings',     icon: Settings        },
   ]},
-] as const
+]
 
-type NavItemType = { href: string; label: string; icon: React.ElementType }
+// You can keep this for the BottomTabBar, or just use NavItem[]
+type NavItemType = NavItem
+
 
 function Sidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname()
