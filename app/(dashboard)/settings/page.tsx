@@ -136,7 +136,21 @@ export default function SettingsPage() {
                     <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'block', marginBottom: 6 }}>Work days</label>
                     <div style={{ display: 'flex', gap: 8 }}>
                       {['S','M','T','W','T','F','S'].map((day, i) => (
-                        <button key={i} onClick={() => setScheduleForm(f => ({ ...f, workDays: f.workDays.includes(i) ? f.workDays.filter(d => d !== i) : [...f.workDays, i].sort() }))} style={{ width: 36, height: 36, borderRadius: '50%', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, background: scheduleForm.workDays.includes(i) ? 'var(--cyan)' : 'var(--card-bg)', color: scheduleForm.workDays.includes(i) ? 'var(--navy)' : 'var(--text-muted)', border: scheduleForm.workDays.includes(i) ? 'none' : '1px solid var(--border)' }}>
+                        <<button 
+  key={i} 
+  onClick={() => setScheduleForm(f => ({ ...f, workDays: f.workDays.includes(i) ? f.workDays.filter(d => d !== i) : [...f.workDays, i].sort() }))} 
+  style={{ 
+    width: 36, 
+    height: 36, 
+    borderRadius: '50%', 
+    cursor: 'pointer', 
+    fontSize: 12, 
+    fontWeight: 700, 
+    background: scheduleForm.workDays.includes(i) ? 'var(--cyan)' : 'var(--card-bg)', 
+    color: scheduleForm.workDays.includes(i) ? 'var(--navy)' : 'var(--text-muted)', 
+    border: scheduleForm.workDays.includes(i) ? 'none' : '1px solid var(--border)' 
+  }}
+>
                           {day}
                         </button>
                       ))}
