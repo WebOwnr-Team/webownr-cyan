@@ -122,6 +122,7 @@ export interface OnboardingState {
   step: OnboardingStep
   businessName?: string
   industry?: string
+  revenueModel?: string
   productType?: ProductType
   targetCustomer?: string
   businessDescription?: string
