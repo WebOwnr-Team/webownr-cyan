@@ -1,18 +1,10 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { Check } from 'lucide-react'
+import { Check, AlertCircle } from 'lucide-react'
 import type { OnboardingQuestion } from '@/lib/onboarding'
 import { WorkScheduleInput } from './WorkScheduleInput'
 import { DEFAULT_WORK_SCHEDULE } from '@/lib/schema'
-
-// ─────────────────────────────────────────────
-// OnboardingInput
-//
-// Renders the correct input control for each step.
-// Auto-focuses text/textarea inputs so the user can
-// start typing immediately after Cyan's message.
-// ─────────────────────────────────────────────
 
 interface OnboardingInputProps {
   question: OnboardingQuestion
@@ -22,27 +14,42 @@ interface OnboardingInputProps {
   disabled?: boolean
 }
 
-export function OnboardingInput({
-  question,
-  value,
-  onChange,
-  error,
-  disabled = false,
-}: OnboardingInputProps) {
+const baseInputStyle: React.CSSProperties = {
+  width: '100%',
+  boxSizing: 'border-box',
+  background: 'var(--card-bg)',
+  border: '1px solid var(--border)',
+  borderRadius: 10,
+  padding: '14px 16px',
+  fontSize: 15,
+  color: 'var(--text-primary)',
+  fontFamily: 'var(--font-body)',
+  lineHeight: 1.5,
+  outline: 'none',
+  transition: 'border-color 200ms, box-shadow 200ms',
+  minHeight: 50,
+}
+
+function ErrorMessage({ text }: { text: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7, marginTop: 8 }}>
+      <AlertCircle size={13} style={{ color: 'var(--orange)', flexShrink: 0, marginTop: 1 }} />
+      <p style={{ fontSize: 13, color: 'var(--orange)', lineHeight: 1.4 }}>{text}</p>
+    </div>
+  )
+}
+
+export function OnboardingInput({ question, value, onChange, error, disabled = false }: OnboardingInputProps) {
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null)
 
-  // Auto-focus on mount and question change
   useEffect(() => {
-    const timer = setTimeout(() => {
-      inputRef.current?.focus()
-    }, 600) // delay until Cyan message finishes streaming
+    const timer = setTimeout(() => { inputRef.current?.focus() }, 700)
     return () => clearTimeout(timer)
   }, [question.step])
 
-  // ── Select (product type) ────────────────────
   if (question.inputType === 'select' && question.options) {
     return (
-      <div className="space-y-2 animate-fade-up" style={{ animationDelay: '300ms' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {question.options.map(opt => {
           const selected = value === opt.value
           return (
@@ -54,53 +61,39 @@ export function OnboardingInput({
               style={{
                 width: '100%',
                 textAlign: 'left',
-                padding: '14px 16px',
+                padding: '16px 18px',
                 borderRadius: 12,
-                border: selected
-                  ? '1px solid var(--cyan)'
-                  : '1px solid var(--border)',
-                background: selected ? 'var(--cyan-subtle)' : 'var(--navy-mid)',
-                cursor: 'pointer',
+                border: selected ? '1px solid var(--cyan)' : '1px solid var(--border)',
+                background: selected ? 'rgba(0,212,255,0.06)' : 'var(--card-bg)',
+                cursor: disabled ? 'not-allowed' : 'pointer',
                 transition: 'all 150ms',
                 display: 'flex',
                 alignItems: 'flex-start',
-                gap: 12,
+                gap: 14,
+                boxSizing: 'border-box',
               }}
             >
-              {/* Selection indicator */}
               <div style={{
-                width: 20,
-                height: 20,
-                borderRadius: '50%',
+                width: 22, height: 22, borderRadius: '50%',
                 border: selected ? 'none' : '2px solid var(--border)',
                 background: selected ? 'var(--cyan)' : 'transparent',
-                flexShrink: 0,
-                marginTop: 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                flexShrink: 0, marginTop: 1,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
                 transition: 'all 150ms',
               }}>
-                {selected && <Check size={11} color="var(--navy)" strokeWidth={3} />}
+                {selected && <Check size={12} color="var(--navy)" strokeWidth={3} />}
               </div>
-
               <div>
                 <p style={{
-                  fontSize: 14,
-                  fontWeight: 600,
+                  fontSize: 14, fontWeight: 600,
                   color: selected ? 'var(--cyan)' : 'var(--text-primary)',
-                  fontFamily: 'var(--font-display)',
-                  marginBottom: 3,
-                  transition: 'color 150ms',
+                  fontFamily: 'var(--font-display)', marginBottom: 4,
+                  lineHeight: 1.3, transition: 'color 150ms',
                 }}>
                   {opt.label}
                 </p>
                 {opt.subtext && (
-                  <p style={{
-                    fontSize: 12,
-                    color: 'var(--text-secondary)',
-                    lineHeight: 1.5,
-                  }}>
+                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
                     {opt.subtext}
                   </p>
                 )}
@@ -108,73 +101,50 @@ export function OnboardingInput({
             </button>
           )
         })}
-
-        {error && (
-          <p style={{ fontSize: 12, color: 'var(--red)', paddingLeft: 4 }}>{error}</p>
-        )}
+        {error && <ErrorMessage text={error} />}
       </div>
     )
   }
 
-  // ── Work schedule ────────────────────────────
   if (question.inputType === 'schedule') {
-    const scheduleValue = value || JSON.stringify(DEFAULT_WORK_SCHEDULE)
     return (
-      <div className="animate-fade-up" style={{ animationDelay: '300ms' }}>
-        <WorkScheduleInput
-          value={scheduleValue}
-          onChange={onChange}
-        />
-        {error && (
-          <p style={{ fontSize: 12, color: 'var(--red)', marginTop: 8 }}>{error}</p>
-        )}
+      <div>
+        <WorkScheduleInput value={value || JSON.stringify(DEFAULT_WORK_SCHEDULE)} onChange={onChange} />
+        {error && <ErrorMessage text={error} />}
       </div>
     )
   }
 
-  // ── Textarea ─────────────────────────────────
   if (question.inputType === 'textarea') {
     return (
-      <div className="animate-fade-up" style={{ animationDelay: '300ms' }}>
+      <div>
         <textarea
           ref={inputRef as React.Ref<HTMLTextAreaElement>}
           disabled={disabled}
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={question.inputPlaceholder}
-          rows={4}
+          rows={5}
           style={{
-            width: '100%',
-            background: 'var(--navy-mid)',
-            border: error ? '1px solid var(--red)' : '1px solid var(--border)',
-            borderRadius: 10,
-            padding: '14px 16px',
-            fontSize: 14,
-            color: 'var(--text-primary)',
-            fontFamily: 'var(--font-body)',
-            lineHeight: 1.6,
+            ...baseInputStyle,
+            border: error ? '1px solid var(--orange)' : '1px solid var(--border)',
             resize: 'vertical',
-            outline: 'none',
-            transition: 'border-color 200ms',
+            minHeight: 120,
           }}
           onFocus={e => {
-            if (!error) e.target.style.borderColor = 'var(--cyan-dim)'
+            if (!error) {
+              e.target.style.borderColor = 'var(--cyan-dim)'
+              e.target.style.boxShadow = '0 0 0 3px rgba(0,212,255,0.08)'
+            }
           }}
           onBlur={e => {
-            if (!error) e.target.style.borderColor = 'var(--border)'
+            e.target.style.borderColor = error ? 'var(--orange)' : 'var(--border)'
+            e.target.style.boxShadow = 'none'
           }}
         />
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginTop: 6,
-        }}>
-          {error
-            ? <p style={{ fontSize: 12, color: 'var(--red)' }}>{error}</p>
-            : <span />
-          }
-          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+          {error ? <ErrorMessage text={error} /> : <span />}
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>
             {value.length} chars
           </span>
         </div>
@@ -182,9 +152,8 @@ export function OnboardingInput({
     )
   }
 
-  // ── Text input (default) ─────────────────────
   return (
-    <div className="animate-fade-up" style={{ animationDelay: '300ms' }}>
+    <div>
       <input
         ref={inputRef as React.Ref<HTMLInputElement>}
         type="text"
@@ -193,35 +162,22 @@ export function OnboardingInput({
         onChange={e => onChange(e.target.value)}
         placeholder={question.inputPlaceholder}
         style={{
-          width: '100%',
-          background: 'var(--navy-mid)',
-          border: error ? '1px solid var(--red)' : '1px solid var(--border)',
-          borderRadius: 10,
-          padding: '14px 16px',
-          fontSize: 15,
-          color: 'var(--text-primary)',
-          fontFamily: 'var(--font-body)',
-          outline: 'none',
-          transition: 'border-color 200ms, box-shadow 200ms',
+          ...baseInputStyle,
+          border: error ? '1px solid var(--orange)' : '1px solid var(--border)',
         }}
         onFocus={e => {
-          e.target.style.borderColor = 'var(--cyan-dim)'
-          e.target.style.boxShadow = '0 0 0 3px var(--cyan-glow)'
-        }}
-        onBlur={e => {
-          e.target.style.borderColor = error ? 'var(--red)' : 'var(--border)'
-          e.target.style.boxShadow = 'none'
-        }}
-        onKeyDown={e => {
-          // Allow Enter to advance on text inputs
-          if (e.key === 'Enter') {
-            e.preventDefault()
+          if (!error) {
+            e.target.style.borderColor = 'var(--cyan-dim)'
+            e.target.style.boxShadow = '0 0 0 3px rgba(0,212,255,0.08)'
           }
         }}
+        onBlur={e => {
+          e.target.style.borderColor = error ? 'var(--orange)' : 'var(--border)'
+          e.target.style.boxShadow = 'none'
+        }}
+        onKeyDown={e => { if (e.key === 'Enter') e.preventDefault() }}
       />
-      {error && (
-        <p style={{ fontSize: 12, color: 'var(--red)', marginTop: 6 }}>{error}</p>
-      )}
+      {error && <ErrorMessage text={error} />}
     </div>
   )
 }
