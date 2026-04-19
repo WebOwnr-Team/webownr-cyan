@@ -12,6 +12,7 @@ export interface BusinessIdentity {
   businessId: string
   ownerId: string
   businessName: string
+  revenueModel: string
   industry: string
   productType: ProductType
   targetCustomer: string
